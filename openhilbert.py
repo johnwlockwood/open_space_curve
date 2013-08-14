@@ -394,7 +394,7 @@ def get_point_2D_at_index(index,order):
 def clampToGeoPt(lat,lon):
     try:
         from google.appengine.api.datastore_types import GeoPt
-    except:
+    except ImportError:
         from geopt_alt import GeoPt
     if lat > 90.0:
         lat = 90.0
