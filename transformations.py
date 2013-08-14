@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # transformations.py
 
-# Copyright (c) 2006, Christoph Gohlke
-# Copyright (c) 2006-2011, The Regents of the University of California
+# Copyright (c) 2006-2013, Christoph Gohlke
+# Copyright (c) 2006-2013, The Regents of the University of California
+# Produced at the Laboratory for Fluorescence Dynamics
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,23 +38,23 @@ scaling, shearing, projecting, orthogonalizing, and superimposing arrays of
 Euler angles, and quaternions. Also includes an Arcball control object and
 functions to decompose transformation matrices.
 
-:Authors:
-  `Christoph Gohlke <http://www.lfd.uci.edu/~gohlke/>`__,
+:Author:
+  `Christoph Gohlke <http://www.lfd.uci.edu/~gohlke/>`_
+
+:Organization:
   Laboratory for Fluorescence Dynamics, University of California, Irvine
 
-:Version: 2011.07.07
+:Version: 2013.06.29
 
 Requirements
 ------------
-
-* `Python 2.7 or 3.2 <http://www.python.org>`__
-* `Numpy 1.6 <http://numpy.scipy.org>`__
-* `transformations.c 2011.07.07 <http://www.lfd.uci.edu/~gohlke/>`__
-  (optional implementation of some functions in C)
+* `CPython 2.7 or 3.3 <http://www.python.org>`_
+* `Numpy 1.7 <http://www.numpy.org>`_
+* `Transformations.c 2013.01.18 <http://www.lfd.uci.edu/~gohlke/>`_
+  (recommended for speedup of some functions)
 
 Notes
 -----
-
 The API is not stable yet and is expected to change between revisions.
 
 This Python code is not optimized for speed. Refer to the transformations.c
@@ -66,9 +67,11 @@ numpy.dot(M0, M1), or transform homogeneous coordinate arrays (v) using
 numpy.dot(M, v) for shape (4, \*) column vectors, respectively
 numpy.dot(v, M.T) for shape (\*, 4) row vectors ("array of points").
 
-This module follows the "column vectors on the right" convention. Use the
-transpose of the transformation matrices for OpenGL glMultMatrixd(), which
-assumes "row vectors on the left" convention.
+This module follows the "column vectors on the right" and "row major storage"
+(C contiguous) conventions. The translation components are in the right column
+of the transformation matrix, i.e. M[:3, 3].
+The transpose of the transformation matrices may have to be used to interface
+with other graphics systems, e.g. with OpenGL's glMultMatrixd(). See also [16].
 
 Calculations are carried out with numpy.float64 precision.
 
@@ -99,7 +102,6 @@ be specified using a 4 character string or encoded 4-tuple:
 
 References
 ----------
-
 (1)  Matrices and transformations. Ronald Goldman.
      In "Graphics Gems I", pp 472-475. Morgan Kaufmann, 1990.
 (2)  More matrices and transformations: shear and pseudo-perspective.
@@ -130,10 +132,11 @@ References
      Itzhack Y Bar-Itzhack, J Guid Contr Dynam. 2000. 23(6): 1085-1087.
 (15) Multiple View Geometry in Computer Vision. Hartley and Zissermann.
      Cambridge University Press; 2nd Ed. 2004. Chapter 4, Algorithm 4.7, p 130.
+(16) Column Vectors vs. Row Vectors.
+     http://steve.hollasch.net/cgindex/math/matrix/column-vec.html
 
 Examples
 --------
-
 >>> alpha, beta, gamma = 0.123, -1.234, 2.345
 >>> origin, xaxis, yaxis, zaxis = [0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]
 >>> I = identity_matrix()
@@ -185,12 +188,13 @@ True
 
 from __future__ import division, print_function
 
-import sys
-import os
-import warnings
 import math
 
 import numpy
+
+__version__ = '2013.06.29'
+__docformat__ = 'restructuredtext en'
+__all__ = []
 
 
 def identity_matrix():
@@ -583,44 +587,44 @@ def projection_from_matrix(matrix, pseudo=False):
 
 
 def clip_matrix(left, right, bottom, top, near, far, perspective=False):
-    """Return matrix to obtain normalized device coordinates from frustrum.
+    """Return matrix to obtain normalized device coordinates from frustum.
 
-    The frustrum bounds are axis-aligned along x (left, right),
+    The frustum bounds are axis-aligned along x (left, right),
     y (bottom, top) and z (near, far).
 
     Normalized device coordinates are in range [-1, 1] if coordinates are
-    inside the frustrum.
+    inside the frustum.
 
-    If perspective is True the frustrum is a truncated pyramid with the
+    If perspective is True the frustum is a truncated pyramid with the
     perspective point at origin and direction along z axis, otherwise an
     orthographic canonical view volume (a box).
 
     Homogeneous coordinates transformed by the perspective clip matrix
-    need to be dehomogenized (devided by w coordinate).
+    need to be dehomogenized (divided by w coordinate).
 
-    >>> frustrum = numpy.random.rand(6)
-    >>> frustrum[1] += frustrum[0]
-    >>> frustrum[3] += frustrum[2]
-    >>> frustrum[5] += frustrum[4]
-    >>> M = clip_matrix(perspective=False, *frustrum)
-    >>> numpy.dot(M, [frustrum[0], frustrum[2], frustrum[4], 1])
+    >>> frustum = numpy.random.rand(6)
+    >>> frustum[1] += frustum[0]
+    >>> frustum[3] += frustum[2]
+    >>> frustum[5] += frustum[4]
+    >>> M = clip_matrix(perspective=False, *frustum)
+    >>> numpy.dot(M, [frustum[0], frustum[2], frustum[4], 1])
     array([-1., -1., -1.,  1.])
-    >>> numpy.dot(M, [frustrum[1], frustrum[3], frustrum[5], 1])
+    >>> numpy.dot(M, [frustum[1], frustum[3], frustum[5], 1])
     array([ 1.,  1.,  1.,  1.])
-    >>> M = clip_matrix(perspective=True, *frustrum)
-    >>> v = numpy.dot(M, [frustrum[0], frustrum[2], frustrum[4], 1])
+    >>> M = clip_matrix(perspective=True, *frustum)
+    >>> v = numpy.dot(M, [frustum[0], frustum[2], frustum[4], 1])
     >>> v / v[3]
     array([-1., -1., -1.,  1.])
-    >>> v = numpy.dot(M, [frustrum[1], frustrum[3], frustrum[4], 1])
+    >>> v = numpy.dot(M, [frustum[1], frustum[3], frustum[4], 1])
     >>> v / v[3]
     array([ 1.,  1., -1.,  1.])
 
     """
     if left >= right or bottom >= top or near >= far:
-        raise ValueError("invalid frustrum")
+        raise ValueError("invalid frustum")
     if perspective:
         if near <= _EPS:
-            raise ValueError("invalid frustrum: near <= 0")
+            raise ValueError("invalid frustum: near <= 0")
         t = 2.0 * near
         M = [[t/(left-right), 0.0, (right+left)/(right-left), 0.0],
              [0.0, t/(bottom-top), (top+bottom)/(top-bottom), 0.0],
@@ -882,11 +886,11 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
     coordinates, where ndims is the dimensionality of the coordinate space.
 
     If shear is False, a similarity transformation matrix is returned.
-    If also scale is False, a rigid/Eucledian transformation matrix
+    If also scale is False, a rigid/Euclidean transformation matrix
     is returned.
 
     By default the algorithm by Hartley and Zissermann [15] is used.
-    If usesvd is True, similarity and Eucledian transformation matrices
+    If usesvd is True, similarity and Euclidean transformation matrices
     are calculated by minimizing the weighted sum of squared deviations
     (RMSD) according to the algorithm by Kabsch [8].
     Otherwise, and if ndims is 3, the quaternion based algorithm by Horn [9]
@@ -992,7 +996,7 @@ def superimposition_matrix(v0, v1, scale=False, usesvd=True):
     The parameters scale and usesvd are explained in the more general
     affine_matrix_from_points function.
 
-    The returned matrix is a similarity or Eucledian transformation matrix.
+    The returned matrix is a similarity or Euclidean transformation matrix.
     This function has a fast C implementation in transformations.c.
 
     >>> v0 = numpy.random.rand(3, 10)
@@ -1506,7 +1510,7 @@ class Arcball(object):
     >>> ball = Arcball(initial=[1, 0, 0, 0])
     >>> ball.place([320, 320], 320)
     >>> ball.setaxes([1, 1, 0], [-1, 1, 0])
-    >>> ball.setconstrain(True)
+    >>> ball.constrain = True
     >>> ball.down([400, 200])
     >>> ball.drag([200, 400])
     >>> R = ball.matrix()
@@ -1515,7 +1519,6 @@ class Arcball(object):
     >>> ball.next()
 
     """
-
     def __init__(self, initial=None):
         """Initialize virtual trackball control.
 
@@ -1561,13 +1564,15 @@ class Arcball(object):
         else:
             self._axes = [unit_vector(axis) for axis in axes]
 
-    def setconstrain(self, constrain):
-        """Set state of constrain to axis mode."""
-        self._constrain = constrain == True
-
-    def getconstrain(self):
+    @property
+    def constrain(self):
         """Return state of constrain to axis mode."""
         return self._constrain
+
+    @constrain.setter
+    def constrain(self, value):
+        """Set state of constrain to axis mode."""
+        self._constrain = bool(value)
 
     def down(self, point):
         """Set initial cursor window coordinates and pick constrain-axis."""
@@ -1665,7 +1670,7 @@ _TUPLE2AXES = dict((v, k) for k, v in _AXES2TUPLE.items())
 
 
 def vector_norm(data, axis=None, out=None):
-    """Return length, i.e. eucledian norm, of ndarray along axis.
+    """Return length, i.e. Euclidean norm, of ndarray along axis.
 
     >>> v = numpy.random.random(3)
     >>> n = vector_norm(v)
@@ -1704,7 +1709,7 @@ def vector_norm(data, axis=None, out=None):
 
 
 def unit_vector(data, axis=None, out=None):
-    """Return ndarray normalized by length, i.e. eucledian norm, along axis.
+    """Return ndarray normalized by length, i.e. Euclidean norm, along axis.
 
     >>> v0 = numpy.random.random(3)
     >>> v1 = unit_vector(v0)
@@ -1862,7 +1867,7 @@ def is_same_transform(matrix0, matrix1):
     return numpy.allclose(matrix0, matrix1)
 
 
-def _import_module(module_name, warn=True, prefix='_py_', ignore='_'):
+def _import_module(name, package=None, warn=True, prefix='_py_', ignore='_'):
     """Try import all public attributes from module into global namespace.
 
     Existing attributes with name clashes are renamed with prefix.
@@ -1871,15 +1876,17 @@ def _import_module(module_name, warn=True, prefix='_py_', ignore='_'):
     Return True on successful import.
 
     """
-    sys.path.append(os.path.dirname(__file__))
+    import warnings
+    from importlib import import_module
     try:
-        module = __import__(module_name)
+        if not package:
+            module = import_module(name)
+        else:
+            module = import_module('.' + name, package=package)
     except ImportError:
-        sys.path.pop()
         if warn:
-            warnings.warn("failed to import module " + module_name)
+            warnings.warn("failed to import module %s" % name)
     else:
-        sys.path.pop()
         for attr in dir(module):
             if ignore and attr.startswith(ignore):
                 continue
@@ -1892,10 +1899,7 @@ def _import_module(module_name, warn=True, prefix='_py_', ignore='_'):
         return True
 
 
-#_import_module('_transformations')
-
-# Documentation in HTML format can be generated with Epydoc
-__docformat__ = "restructuredtext en"
+_import_module('_transformations')
 
 if __name__ == "__main__":
     import doctest
