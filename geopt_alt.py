@@ -51,19 +51,57 @@ class GeoPt(object):
     self.lat = lat
     self.lon = lon
 
-  def __cmp__(self, other):
+  def _convert_other(self, other):
     if not isinstance(other, GeoPt):
       try:
-        other = GeoPt(other)
+        return GeoPt(other)
       except ValueError:
         return NotImplemented
+    return other
 
+  def __eq__(self, other):
+    other = self._convert_other(other)
+    if other is NotImplemented:
+      return NotImplemented
+    return (self.lat, self.lon) == (other.lat, other.lon)
 
-    lat_cmp = cmp(self.lat, other.lat)
-    if lat_cmp != 0:
-      return lat_cmp
-    else:
-      return cmp(self.lon, other.lon)
+  def __ne__(self, other):
+    other = self._convert_other(other)
+    if other is NotImplemented:
+      return NotImplemented
+    return (self.lat, self.lon) != (other.lat, other.lon)
+
+  def __lt__(self, other):
+    other = self._convert_other(other)
+    if other is NotImplemented:
+      return NotImplemented
+    if self.lat < other.lat:
+      return True
+    if self.lat == other.lat and self.lon < other.lon:
+      return True
+    return False
+
+  def __le__(self, other):
+    other = self._convert_other(other)
+    if other is NotImplemented:
+      return NotImplemented
+    return self < other or self == other
+
+  def __gt__(self, other):
+    other = self._convert_other(other)
+    if other is NotImplemented:
+      return NotImplemented
+    if self.lat > other.lat:
+      return True
+    if self.lat == other.lat and self.lon > other.lon:
+      return True
+    return False
+
+  def __ge__(self, other):
+    other = self._convert_other(other)
+    if other is NotImplemented:
+      return NotImplemented
+    return self > other or self == other
 
   def __hash__(self):
     """Returns an integer hash of this point.
