@@ -41,7 +41,7 @@ class TestHilbertTables(unittest.TestCase):
 
 
 
-        state0 = np.round_(self.STATE0M.getT()[:2:].getT().astype(int)).astype(int)
+        state0 = np.round(self.STATE0M.getT()[:2:].getT().astype(int)).astype(int)
         result = state0 == good_state_zero
         for val in (row for row in result.tolist()):
             self.assertTrue(val)
@@ -58,7 +58,7 @@ def clean_bounds(boundsinput):
 
         bbox = BoundingBox_2D(np.array([float(bounds[1]),float(bounds[0])]),\
             np.array([float(bounds[3]),float(bounds[2])]))
-    except Exception, e:
+    except Exception as e:
         logging.exception("invalid bounds")
         raise
     return bbox

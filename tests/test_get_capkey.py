@@ -39,8 +39,8 @@ class TestGet_capkey(unittest.TestCase):
     def latlon_to_geopt_to_capkey_to_geopt(self,lat,lon,order = 29):
         startgeopt = GeoPt(lat, lon)
         capkeyA = openhilbert.get_capkey(startgeopt,order=order)
-        #print startgeopt
-        #print capkeyA
+        #print(startgeopt)
+        #print(capkeyA)
         cfcF = openhilbert.CubeFaceAndCoords.from_capkey(capkeyA)
         endgeopoint = cfcF.to_sphere_geopt()
 
@@ -49,8 +49,8 @@ class TestGet_capkey(unittest.TestCase):
     def convert_geopt(self,lat,lon,order = 29,precision_delta = 0.0000001016):
         startgeopt, endgeopoint = self.latlon_to_geopt_to_capkey_to_geopt(lat,lon,order=order)
 
-#        print endgeopoint.lat - startgeopt.lat
-#        print endgeopoint.lon - startgeopt.lon
+#        print(endgeopoint.lat - startgeopt.lat)
+#        print(endgeopoint.lon - startgeopt.lon)
         #0.0000001 == 1.11 centimeters, times 2.1 = 0.917716535 inches
         #0.00001 == 1.11 meters, times 2.6 = 113.622047 inches
 
@@ -69,14 +69,14 @@ class TestGet_capkey(unittest.TestCase):
         for lat,lon in self.latlon_matrix:
             startgeopt, endgeopoint = self.latlon_to_geopt_to_capkey_to_geopt(lat,lon,
                 order = order)
-#            print "precision test"
+#            print("precision test")
             startgeopt2, endgeopoint2 = self.latlon_to_geopt_to_capkey_to_geopt(endgeopoint.lat,
                 endgeopoint.lon,order = order)
-#            print startgeopt
-#            print endgeopoint
-#            print endgeopoint2
-#            print "lat diff: ",endgeopoint2.lat - startgeopt2.lat
-#            print "lon diff: ",endgeopoint2.lon - startgeopt2.lon
+#            print(startgeopt)
+#            print(endgeopoint)
+#            print(endgeopoint2)
+#            print("lat diff: ",endgeopoint2.lat - startgeopt2.lat)
+#            print("lon diff: ",endgeopoint2.lon - startgeopt2.lon)
             self.convert_geopt(endgeopoint2.lat,endgeopoint2.lon,order=order)
 
 

@@ -16,7 +16,8 @@ import math
 import transformations as tr
 import logging
 import copy
-from time import clock, time
+from functools import cmp_to_key
+from time import perf_counter, time
 
 #firstState = np.matrix([[0,0],[0,1],[1,1],[1,0]])
 #plus90 = np.matrix([[0,-1],[1,0]])
@@ -108,10 +109,10 @@ def create_curve_states_2D():
         [1, 0, 0, 1]])
 
 
-    state0 = np.round_(state0m.getT()[:2:].getT().astype(int)).astype(int)
-    state1 = np.round_(R90CW_FH.dot(state0m.getT())[:2:].getT()).astype(int)
-    state2 = np.round_(R90CW_FV.dot(state0m.getT())[:2:].getT()).astype(int)
-    state3 = np.round_(R180CW.dot(state0m.getT())[:2:].getT()).astype(int)
+    state0 = np.round(state0m.getT()[:2:].getT().astype(int)).astype(int)
+    state1 = np.round(R90CW_FH.dot(state0m.getT())[:2:].getT()).astype(int)
+    state2 = np.round(R90CW_FV.dot(state0m.getT())[:2:].getT()).astype(int)
+    state3 = np.round(R180CW.dot(state0m.getT())[:2:].getT()).astype(int)
 
     return np.array([state0,state1, \
     state2, state3])
@@ -161,7 +162,7 @@ def permutate_curve_state_matrix(curve_state):
     for trans in PERMUTATION_TRANSFORM_PATTERN:
         if not trans is None:
             permutated_states.append(
-                np.round_(trans.dot(state0m.getT())[:2:].getT()).astype(int))
+                np.round(trans.dot(state0m.getT())[:2:].getT()).astype(int))
         else:
             permutated_states.append(curve_state)
 
@@ -278,10 +279,10 @@ def index_point_2D(faceCoords, order):
     fold_index = 0
     while next_order<=order:
 
-        startCFtime = time()
+        startCFtime = perf_counter()
         fold_index, point = get_next_order_fold_index_and_point_2D( \
             faceCoords, point,state_key,next_order)
-        cfTime += time() - startCFtime
+        cfTime += perf_counter() - startCFtime
         cfCount += 1
 
         index = index*CHILDREN_COUNT_2D+fold_index
@@ -312,10 +313,10 @@ def point_from_fold_indexes_2D(fold_indexes):
     fold_index = 0
     for fold_index in fold_indexes:
 
-        startCFtime = time()
+        startCFtime = perf_counter()
         point = get_next_order_point_2D(
             fold_index, point,state_key,next_order)
-        cfTime += time() - startCFtime
+        cfTime += perf_counter() - startCFtime
         cfCount += 1
 
         index = index*CHILDREN_COUNT_2D+fold_index
@@ -549,7 +550,7 @@ class HilbertSpaceCurvePoint(object):
 
     def index_from_curve_key(self,children_count=4):
         key = self.get_curve_key()
-        return long(key,children_count)
+        return int(key,children_count)
 
     def get_parent_curve_point(self):
         order = self.order
@@ -1065,12 +1066,12 @@ def get_children_curves_2D(curve_point):
 CHILDREN_COUNT_2D = 4
 
 def get_index_at_previous_order_2D(index):
-    return int(index/CHILDREN_COUNT_2D)
+    return int(index//CHILDREN_COUNT_2D)
 
 def gen_index_at_previous_orders_2D(index,order):
     for theOrder in sorted(range(0,order+1),reverse=True):
         yield index
-        index = int(index/CHILDREN_COUNT_2D)
+        index = int(index//CHILDREN_COUNT_2D)
 
 def get_fold_index_2D(index):
     return index%CHILDREN_COUNT_2D
@@ -1126,10 +1127,10 @@ def get_dimensional_positions_at_orders_2D(index,order):
     for key,value in enumerate(states_at_orders):
         try:
             positions_at_orders[key]=CURVESTATES2D[value][fold_indexes_at_orders[key]]
-        except TypeError, e:
-            print "ERROR"
-            print "value: ", value
-            print "key: ",key
+        except TypeError as e:
+            print("ERROR")
+            print("value: ", value)
+            print("key: ",key)
             raise e
 
     return positions_at_orders
@@ -1160,7 +1161,7 @@ def compare_range_length_desc(a,b):
         return -1
 
 def compress_ranges_2D(ranges):
-    ranges.sort(compare_range)
+    ranges.sort(key=cmp_to_key(compare_range))
     compact_ranges = []
     length = len(ranges)
     index = 0
@@ -1189,13 +1190,12 @@ def curve_point_range_at_order_2D(curve_point,order):
     else:
         total_count_at_order = 1<<(2*(order + 1))
         point_count_at_curve_order = 1<<(2*(curve_point.order + 1))
-        count_at_order = total_count_at_order/point_count_at_curve_order
+        count_at_order = total_count_at_order//point_count_at_curve_order
         starting_index = count_at_order*curve_point.index
         ending_index = starting_index+ count_at_order - 1
         return starting_index,ending_index
 
-def long_distance_matching_lat_distance(lat_rads,distance_rads,
-    miles_dist, radius = 3963.0):
+def long_distance_matching_lat_distance(lat_rads,distance_rads, miles_dist, radius = 3963.0):
     lat1 = lat_rads
     lon1 = 0.0
     lat2 = lat_rads
@@ -1256,18 +1256,18 @@ def index_ranges_in_bounding_box_2D(bounding_box,to_order=None,
     # find optimal order based on the size of box
     diagonal_size_of_box = bounding_box.diagonal_size()
     shiftstart = int(1.0/diagonal_size_of_box)
-    starttime1 = time()
+    starttime1 = perf_counter()
     if to_order is None:
         to_order = 0
         shift = shiftstart
         while shift > 0:
             shift = shiftstart>>to_order
             to_order += 1
-    endtime1= time() - starttime1
+    endtime1= perf_counter() - starttime1
 
-    starttime2 = time()
+    starttime2 = perf_counter()
     #logSomething = math.log(shiftstart,2) +2
-    endtime2= time() - starttime2
+    endtime2= perf_counter() - starttime2
     logging.debug("to_order time comp:%0.32f %0.32f"%(endtime1,endtime2,))
     #logging.debug("\nshiftstart:%s %s %s"%(shiftstart,to_order,int(logSomething)) )
 
@@ -1280,7 +1280,7 @@ def index_ranges_in_bounding_box_2D(bounding_box,to_order=None,
     open_list = copy.deepcopy(FIRST_ORDER_CURVE_POINTS)
     ranges = []
     logging.debug("to_order: %s"%to_order)
-    startbboxtime = time()
+    startbboxtime = perf_counter()
     for order in range(0,to_order+1):
         if not len(open_list):
             break
@@ -1314,25 +1314,25 @@ def index_ranges_in_bounding_box_2D(bounding_box,to_order=None,
 
         open_list = next_order_open_list
 
-    endbboxtime= time() - startbboxtime
+    endbboxtime= perf_counter() - startbboxtime
 
     logging.debug("point-in-bbox checks %s, took %0.32f at %0.32f each"%(checks,
-        endbboxtime,endbboxtime/checks))
+        endbboxtime,endbboxtime/checks if checks > 0 else 0))
 
     #compress ranges
-    ranges.sort(compare_range)
+    ranges.sort(key=cmp_to_key(compare_range))
 
-    starttime3 = time()
+    starttime3 = perf_counter()
     if compress_ranges:
         ranges = compress_ranges_2D(ranges)
 
-    endtime3= time() - starttime3
+    endtime3= perf_counter() - starttime3
     logging.debug("compress ranges: %0.32f"%(endtime3,))
     curve_ranges = []
 
     lenRanges = len(ranges)
     logging.debug("for %s ranges:"%(lenRanges,))
-    starttime4 = time()
+    starttime4 = perf_counter()
     get_point_time = 0.0
     get_point_count = 0
 
@@ -1344,50 +1344,50 @@ def index_ranges_in_bounding_box_2D(bounding_box,to_order=None,
     cfTime = 0.0
 
     for start,end in ranges:
-        startpointtime = time()
+        startpointtime = perf_counter()
         start_point = get_point_2D_at_index(start,to_order)
-        get_point_time += time() - startpointtime
+        get_point_time += perf_counter() - startpointtime
         get_point_count +=1
 
-        startindextime = time()
+        startindextime = perf_counter()
         start_curve, timings = index_point_2D(start_point,to_order)
         cfTime,cfCount = timings
         cfTimeT += cfTime
         cfCountT += cfCount
-        index_point_time += time() - startindextime
+        index_point_time += perf_counter() - startindextime
         index_point_count +=1
 
         if end == start:
             end_curve = copy.deepcopy(start_curve)
         else:
-            startpointtime = time()
+            startpointtime = perf_counter()
             end_point = get_point_2D_at_index(end,to_order)
-            get_point_time += time() - startpointtime
+            get_point_time += perf_counter() - startpointtime
             get_point_count +=1
 
-            startindextime = time()
+            startindextime = perf_counter()
             end_curve, timings = index_point_2D(end_point,to_order)
             cfTime,cfCount = timings
             cfTimeT += cfTime
             cfCountT += cfCount
-            index_point_time += time() - startindextime
+            index_point_time += perf_counter() - startindextime
             index_point_count +=1
 
 
         curve_ranges.append((start_curve,end_curve))
 
-    endtime4 = time() - starttime4
-    logging.debug("index ranges:%0.32f, that's %0.32f/range"%(endtime4,endtime4/lenRanges))
+    endtime4 = perf_counter() - starttime4
+    logging.debug("index ranges:%0.32f, that's %0.32f/range"%(endtime4,endtime4/lenRanges if lenRanges > 0 else 0))
     logging.debug("get point time:%0.32f, that's %0.32f/curve of %s"%(get_point_time,
-        get_point_time/get_point_count, get_point_count))
+        get_point_time/get_point_count if get_point_count > 0 else 0, get_point_count))
     logging.debug("index point time:%0.32f, that's %0.32f/point of %s"%(index_point_time,
-        index_point_time/index_point_count,index_point_count))
+        index_point_time/index_point_count if index_point_count > 0 else 0,index_point_count))
 
     logging.debug("get_next_order_fold_index_and_point_2D time:%0.32f, that's %0.32f/point of %s\n"%(cfTimeT,
-        cfTime/cfCountT,cfCountT))
+        cfTime/cfCountT if cfCountT > 0 else 0,cfCountT))
 
 
-    curve_ranges.sort(compare_range_length_desc)
+    curve_ranges.sort(key=cmp_to_key(compare_range_length_desc))
 
 
     return curve_ranges
@@ -1512,11 +1512,11 @@ def main():
     state0m = STATE0M
     R90CW,FH,FV,R90CW_FH,R90CW_FV,R180CW = get_standard_matrixes()
 
-    print "\nstate0"
+    print("\nstate0")
 
 
-    state0 = np.round_(state0m.getT()[:2:].getT().astype(int)).astype(int)
-    print state0
+    state0 = np.round(state0m.getT()[:2:].getT().astype(int)).astype(int)
+    print(state0)
 
 
     #print ""
@@ -1528,13 +1528,13 @@ def main():
 
     #print ""
 
-    print "\nstate0 rotated clockwise"
-    print np.round_(R90CW.dot(state0m.getT())[:2:].getT()).astype(int)
+    print("\nstate0 rotated clockwise")
+    print(np.round(R90CW.dot(state0m.getT())[:2:].getT()).astype(int))
 
 
-    state1 = np.round_(R90CW_FH.dot(state0m.getT())[:2:].getT()).astype(int)
-    print "\nstate1"
-    print state1
+    state1 = np.round(R90CW_FH.dot(state0m.getT())[:2:].getT()).astype(int)
+    print("\nstate1")
+    print(state1)
 
 
 
@@ -1542,21 +1542,21 @@ def main():
 
 
 
-    state2 = np.round_(R90CW_FV.dot(state0m.getT())[:2:].getT()).astype(int)
+    state2 = np.round(R90CW_FV.dot(state0m.getT())[:2:].getT()).astype(int)
 
-    print "\nstate2"
-    print state2
+    print("\nstate2")
+    print(state2)
 
-    print "\nstate3"
+    print("\nstate3")
 
 
-    state3 = np.round_(R180CW.dot(state0m.getT())[:2:].getT()).astype(int)
+    state3 = np.round(R180CW.dot(state0m.getT())[:2:].getT()).astype(int)
 
-    print state3
+    print(state3)
 
     #pad test
-    print "\npad test"
-    print pad_state2d(state3)
+    print("\npad test")
+    print(pad_state2d(state3))
 
     CURVESTATES = np.array([state0,state1, \
     state2, state3])
@@ -1565,7 +1565,7 @@ def main():
 
 
     #base4 for incrementing a capkey
-    print np.base_repr(23,4,10)
+    print(np.base_repr(23,4,10))
     #get order of capkey,capkey to base10, increment,
     #result to base4 padded to the order
 
@@ -1575,51 +1575,49 @@ def main():
     #   face_point = sphere to cube face 2d
     #   face point encoded
 
-    print "CURVESTATES2D = create_curve_states_2D()"
-    print CURVESTATES2D.tostring()
+    print("CURVESTATES2D = create_curve_states_2D()")
+    print(CURVESTATES2D.tostring())
 
 
-    print "\nstate 2 permutated"
-    state2_permed =  permutate_curve_state_matrix(CURVESTATES2D[2])
-    print state2_permed
+    print("\nstate 2 permutated")
+    state2_permed =  permutate_curve_state_matrix(CURVESTATES2D[2]) # type: ignore
+    print(state2_permed)
 
-    print "\nindex of states in state2_permed"
+    print("\nindex of states in state2_permed")
     for curve_state in state2_permed:
-        print index_of_state(curve_state)
+        print(index_of_state(curve_state))
 
-    print "\nindex of states in CURVESTATES2D"
+    print("\nindex of states in CURVESTATES2D")
     for curve_state in CURVESTATES2D:
-        print index_of_state(curve_state)
+        print(index_of_state(curve_state))
 
-    print ""
+    print("")
 
-    print "PERMUTATION_KEYS_2D = ",
-    print PERMUTATION_KEYS_2D
+    print(f"PERMUTATION_KEYS_2D = {PERMUTATION_KEYS_2D}")
 
 
 
     ageopoint = GeoPt(36.33459, -94.09610)
-    print ageopoint
+    print(ageopoint)
     capkeyA = get_capkey(ageopoint)
-    print capkeyA
+    print(capkeyA)
     cfcF = CubeFaceAndCoords.from_capkey(capkeyA)
-    print "from capkey to position ",
-    print cfcF.to_position3()
-    print "SPHERE GEOPOINT ",cfcF.to_sphere_geopt()
+    print(f"from capkey to position {cfcF.to_position3()}")
+    print(f"SPHERE GEOPOINT {cfcF.to_sphere_geopt()}")
     cfc = sphere_to_cube_face_2D(ageopoint)
     capkeyB = index_point_at_orders_2D(cfc.position,MAX_ORDER)
-    print capkeyB
-    print "".join((str(ck) for ck in capkeyB)) == capkeyA[1:]
+    print(capkeyB)
+    print("".join((str(ck) for ck in capkeyB)) == capkeyA[1:])
     #import pdb;pdb.set_trace()
-    print cfc.to_position3()
-    print "SPHERE GEOPOINT ",cfc.to_sphere_geopt()
+    print(cfc.to_position3())
+    print(f"SPHERE GEOPOINT {cfc.to_sphere_geopt()}")
 
 
     mpoly =  capkey_boundary_multipolygon(ageopoint,order=10)
 
-    print mpoly
+    print(mpoly)
 
-    print get_surrounding_capkeys(ageopoint,order=10)
+    print(get_surrounding_capkeys(ageopoint,order=10))
 
 
     points = capkey_boundary_multipolygon(ageopoint,10)
@@ -1630,8 +1628,8 @@ def main():
 
     center_point = bbox.get_center()
     center_geopt = GeoPt(center_point[0],center_point[1])
-    print geojsonable
-    print geoPtToGeojsonable(center_geopt)
+    print(geojsonable)
+    print(geoPtToGeojsonable(center_geopt))
 
 
 
